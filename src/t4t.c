@@ -132,7 +132,7 @@ int main(){
         else if(ch == '\n'){
             buffer[b_pos] = '\0';
             char *line = strndup(buffer,b_pos);
-            //b_pos = 0;
+            b_pos = 0;
             printw("Running line: %s\n", line);
             
             //Parse line
