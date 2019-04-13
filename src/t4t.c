@@ -1,5 +1,5 @@
 /*
-Written by Benjamin Ziemann, Seungin Lyu, Nathan Shuster
+Written by Team Terms4Teams (Benjamin Ziemann, Seungin Lyu, Nathan Shuster)
 Software Systems SP19 Olin College of Engineering
 Credits to Stephen Brennan https://github.com/brenns10/lsh.
 We used code from Stephen's simple lsh shell on top of ncurses library
@@ -11,13 +11,18 @@ and added collaboration fetaure by estabilishing network connections.
 #include <string.h> 
 #include <sys/time.h>
 #include <sys/types.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #define BUFSIZE 1024
 #define TOKSIZE 64
 #define TOKEN_DELIM " \t\r\n\a"
+
+// Defining ctrl+c to get around ncurses raw() mode
+#ifndef CTRL
+#define CTRL(c) ((c) & 037)
+#endif
 
 /*
 * Breaks the built up buffer into tokens. Called before running
@@ -109,17 +114,17 @@ int main(){
         printw("Got the char %c\n", ch);
         
         //Quit the program, disconnect from host
-        if(ch == '`') {
+        if(ch == CTRL('c')) {
             printw("Bye bye\n");
             break;
         }
         
         // when user types in backspace
         else if (ch == 127 || ch == '\b' || ch == KEY_BACKSPACE) {
-            b_pos = ((b_pos > 0) ? (b_pos-1) : 0);
             char deleted_char = buffer[b_pos];
-            buffer[b_pos] == '\0';
-            mvprintw(0, 0, "%s", buffer);
+            b_pos = ((b_pos > 0) ? (b_pos-1) : 0);
+            buffer[b_pos] = '\0';
+            printw("new line: %s\n", buffer);
             printf("deleted char: %c\n", deleted_char);
         }
         
@@ -127,6 +132,7 @@ int main(){
         else if(ch == '\n'){
             buffer[b_pos] = '\0';
             char *line = strndup(buffer,b_pos);
+            //b_pos = 0;
             printw("Running line: %s\n", line);
             
             //Parse line
@@ -140,6 +146,7 @@ int main(){
             buffer[b_pos] = ch;
             b_pos++;
         }
+
         //Update ncurses
         refresh();
     } while(!status);
