@@ -1,5 +1,5 @@
 # Terms4Teams - Collaborate on Terminal
-## Benjamin Ziemann, Seungin Lyu
+## Benjamin Ziemann, Seungin Lyu, Nathan Shuster
 
 ## Project Description
 
