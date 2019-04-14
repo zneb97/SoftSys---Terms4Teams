@@ -112,7 +112,7 @@ int run_line(char **args){
             waitpid(pid, &status, WUNTRACED);
         } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         
-        char buffer[10000];
+        char buffer[1000];
         while (read(fd[0], buffer, sizeof(buffer)) != 0)
         {
             addstr(buffer);
