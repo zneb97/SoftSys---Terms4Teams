@@ -67,27 +67,56 @@ char** parse_line(char* line){
 * args - tokens of the input line arguements
 */
 int run_line(char **args){
+
+    /* 
+    Because ncurses needs to keep track of what's written on the screen,
+    we need to use pipes to communicate between the parent process and the child process.
+    Without pipes, the ncurses screen gets pushed to the right due to the output from the child processes
+    */
+    int     fd[2], nbytes;
+    char    readbuffer[80];
+
+    pipe(fd);
+
     pid_t pid;
     int status;
 
     pid = fork();
     if (pid == 0) {
         // Child process
+        close(fd[0]);    // close reading end in the child
+
+        dup2(fd[1], 1);  // send stdout to the pipe
+        dup2(fd[1], 2);  // send stderr to the pipe
+
+        close(fd[1]);    // this descriptor is no longer needed
         if (execvp(args[0], args) == -1) {
-            perror("Fork error");
+            fprintf(stderr, "Command Not Found\n");
         }
         exit(1);
     } 
     else if (pid < 0) {
         // Error forking
-        perror("Fork error");
+        close(fd[0]);    // close reading end in the child
+
+        dup2(fd[1], 1);  // send stdout to the pipe
+        dup2(fd[1], 2);  // send stderr to the pipe
+        close(fd[1]);
+        fprintf(stderr, "Command Not Found\n");
         return 1;
     } 
     else {
         // Parent process
+        close(fd[1]);
         do { 
             waitpid(pid, &status, WUNTRACED);
         } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+        
+        char buffer[10000];
+        while (read(fd[0], buffer, sizeof(buffer)) != 0)
+        {
+            addstr(buffer);
+        }
     }
     return 0;
 }
@@ -96,59 +125,67 @@ int run_line(char **args){
 int main(){
     int ch; // Stored character for analysis
     int b_pos = 0; // position in the buffer
-    int c_pos = 0; // ncurses cursor position
     char buffer[BUFSIZE];
     char **tokens;
     int status = 0; // status flag foor the terminal loop
-    
+    int row, col;
+    int y, x; // cursor position
     //Init ncurses
     initscr();
+    getmaxyx(stdscr, row, col);	
     raw();
     keypad(stdscr, TRUE);
     noecho();
-
+    
+    printw("user > ");
+    refresh();
     do {
         // sync()
+        
             //Sync b_postion, buffer       
         ch = getch();
-        printw("Got the char %c\n", ch);
-        
         //Quit the program, disconnect from host
         if(ch == CTRL('c')) {
             printw("Bye bye\n");
+            refresh();
             break;
         }
-        
         // when user types in backspace
         else if (ch == 127 || ch == '\b' || ch == KEY_BACKSPACE) {
             char deleted_char = buffer[b_pos];
             b_pos = ((b_pos > 0) ? (b_pos-1) : 0);
             buffer[b_pos] = '\0';
-            printw("new line: %s\n", buffer);
-            printf("deleted char: %c\n", deleted_char);
+            printw("\b \b");
+            refresh();
         }
-        
         //Run the entered command
         else if(ch == '\n'){
+            /*run commands*/
+            getyx(stdscr, y, x);
+            move(y+1,0);
+            refresh();
             buffer[b_pos] = '\0';
             char *line = strndup(buffer,b_pos);
             b_pos = 0;
-            printw("Running line: %s\n", line);
-            
+
             //Parse line
                 //Break into tokens/arguments, identify primary command
             tokens = parse_line(buffer);
             //Run Line
             status = run_line(tokens);
+            /* clear buffer and refresh*/
+            buffer[0] = '\0'; // empty buffer after execution
+            printw("user > ");
+            refresh();   
         }
         //Sync between clients
         else {
             buffer[b_pos] = ch;
             b_pos++;
+            addch(ch | A_BOLD | A_UNDERLINE);
         }
-
-        //Update ncurses
         refresh();
+       
     } while(!status);
     
     getch();
