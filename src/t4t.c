@@ -25,6 +25,94 @@ and added collaboration fetaure by estabilishing network connections.
 #endif
 
 /*
+  Function Declarations for builtin shell commands:
+ */
+int t4t_cd(char **args);
+int t4t_help(char **args);
+int t4t_exit(char **args);
+
+/*
+  List of builtin commands, followed by their corresponding functions.
+ */
+char *builtin_str[] = {
+  "cd",
+  "help",
+  "exit"
+};
+
+int (*builtin_func[]) (char **) = {
+  &t4t_cd,
+  &t4t_help,
+  &t4t_exit
+};
+
+int t4t_num_builtins() {
+  return sizeof(builtin_str) / sizeof(char *);
+}
+
+/*
+  Builtin function implementations.
+*/
+
+/**
+   @brief Bultin command: change directory.
+   @param args List of args.  args[0] is "cd".  args[1] is the directory.
+   @return Always returns 1, to continue executing.
+ */
+int t4t_cd(char **args)
+{
+  if (args[1] == NULL) {
+    printw("t4t: expected argument to \"cd\"\n");
+  } else {
+    if (chdir(args[1]) != 0) {
+      perror("t4t");
+    }
+  }
+  return 1;
+}
+
+/**
+   @brief Builtin command: print help.
+   @param args List of args.  Not examined.
+   @return Always returns 1, to continue executing.
+ */
+int t4t_help(char **args)
+{
+  int i;
+  for (i = 0; i < t4t_num_builtins(); i++) {
+    printf("  %s\n", builtin_str[i]);
+  }
+  printw("Sorry, we don't offer help :(\n");
+  return 1;
+}
+
+/**
+   @brief Builtin command: exit.
+   @param args List of args.  Not examined.
+   @return Always returns 0, to terminate execution.
+ */
+int t4t_exit(char **args)
+{
+  return 0;
+}
+
+int t4t_execute(char **args)
+{
+  int i;
+
+  if (args[0] == NULL) {
+    // An empty command was entered.
+    return 1;
+  }
+  for (i = 0; i < t4t_num_builtins(); i++) {
+    if (strcmp(args[0], builtin_str[i]) == 0) {
+      return (*builtin_func[i])(args);
+    }
+  }
+  return 0;
+}
+
+/*
 * Breaks the built up buffer into tokens. Called before running
 * the line
 *
@@ -171,8 +259,10 @@ int main(){
             //Parse line
                 //Break into tokens/arguments, identify primary command
             tokens = parse_line(buffer);
+            if(t4t_execute(tokens) == 0){
+                status = run_line(tokens);
+            }
             //Run Line
-            status = run_line(tokens);
             /* clear buffer and refresh*/
             buffer[0] = '\0'; // empty buffer after execution
             printw("user > ");
