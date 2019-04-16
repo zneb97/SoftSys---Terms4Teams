@@ -24,6 +24,7 @@ and added collaboration fetaure by estabilishing network connections.
 #define CTRL(c) ((c) & 037)
 #endif
 
+WINDOW *new;
 /*
   Function Declarations for builtin shell commands:
  */
@@ -62,7 +63,7 @@ int t4t_num_builtins() {
 int t4t_cd(char **args)
 {
   if (args[1] == NULL) {
-    printw("t4t: expected argument to \"cd\"\n");
+    wprintw(new, "t4t: expected argument to \"cd\"\n");
   } else {
     if (chdir(args[1]) != 0) {
       perror("t4t");
@@ -82,7 +83,7 @@ int t4t_help(char **args)
   for (i = 0; i < t4t_num_builtins(); i++) {
     printf("  %s\n", builtin_str[i]);
   }
-  printw("Sorry, we don't offer help :(\n");
+  wprintw(new, "Sorry, we don't offer help :(\n");
   return 1;
 }
 
@@ -203,7 +204,7 @@ int run_line(char **args){
         char buffer[1000];
         while (read(fd[0], buffer, sizeof(buffer)) != 0)
         {
-            addstr(buffer);
+            waddstr(new, buffer);
         }
     }
     return 0;
@@ -221,12 +222,15 @@ int main(){
     //Init ncurses
     initscr();
     getmaxyx(stdscr, row, col);	
+    new = newwin(row - 2, col - 2, 1, 1);
+
+    scrollok(new,TRUE);
     raw();
     keypad(stdscr, TRUE);
     noecho();
     
-    printw("user > ");
-    refresh();
+    waddstr(new, "user > ");
+    wrefresh(new);
     do {
         // sync()
         
@@ -234,8 +238,8 @@ int main(){
         ch = getch();
         //Quit the program, disconnect from host
         if(ch == CTRL('c')) {
-            printw("Bye bye\n");
-            refresh();
+            wprintw(new, "Bye bye\n");
+            wrefresh(new);
             break;
         }
         // when user types in backspace
@@ -243,15 +247,15 @@ int main(){
             char deleted_char = buffer[b_pos];
             b_pos = ((b_pos > 0) ? (b_pos-1) : 0);
             buffer[b_pos] = '\0';
-            printw("\b \b");
-            refresh();
+            wprintw(new, "\b \b");
+            wrefresh(new);
         }
         //Run the entered command
         else if(ch == '\n'){
             /*run commands*/
-            getyx(stdscr, y, x);
-            move(y+1,0);
-            refresh();
+            getyx(new, y, x);
+            wmove(new, y+1,0);
+            wrefresh(new);
             buffer[b_pos] = '\0';
             char *line = strndup(buffer,b_pos);
             b_pos = 0;
@@ -265,16 +269,16 @@ int main(){
             //Run Line
             /* clear buffer and refresh*/
             buffer[0] = '\0'; // empty buffer after execution
-            printw("user > ");
-            refresh();   
+            wprintw(new, "user > ");
+            wrefresh(new);   
         }
         //Sync between clients
         else {
             buffer[b_pos] = ch;
             b_pos++;
-            addch(ch | A_BOLD | A_UNDERLINE);
+            waddch(new, ch | A_BOLD | A_UNDERLINE);
         }
-        refresh();
+        wrefresh(new);
        
     } while(!status);
     
