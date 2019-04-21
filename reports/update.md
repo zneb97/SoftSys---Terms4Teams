@@ -25,7 +25,9 @@ We do have some stretch goals.
 - Learn how to work with a string buffer and a screen that need to be updated on every key stroke instead of waiting for a `\n` character.
 
 <b>Seungin</b> - I want to gain deeper insights into how processes work with real-time network I/O and learn how provide a solid user experience when there are string buffer conflicts to be resolved. 
+
 <b>Nathan</b> - I want to gain more experience developing applications in C and to expand on my knowledge of networking from the last project. Real-time editing is also super cool.
+
 <b>Ben</b> - I want to get a better understanding of how real time collaboration works, namely the algorithms and intuitions used to make the work feel natural and provide a strong user experience.
 
 ### Where We've Been
