@@ -18,8 +18,6 @@
 #define PORT 9000
 #define BUF_SIZE 1024
 
-int username_flag = 0; // 0: username not set
-
 void * receiveMessage(void * socket) {
  int sockfd, ret;
  char buffer[BUF_SIZE];
@@ -47,6 +45,7 @@ int main(int argc, char const *argv[])
     struct sockaddr_in serv_addr;
     char username[BUF_SIZE];
     char buffer[BUF_SIZE] = {0};
+    char prev_buffer[BUF_SIZE] = {0};
     char * serverAddr;
     pthread_t rThread;
 
@@ -89,26 +88,96 @@ int main(int argc, char const *argv[])
      exit(1);
     }
 
-    if(!username_flag){
-      printf("Hack3rCh@t v1.0\n");
-    }
-
 
   //Time stuff
-          time_t last_time;
-          float time_out = 0.5; //Time (seconds) before buffer changes are checked
-          time(&last_time);
-          initscr();
-          timeout(-1);
+    time_t last_time;
+    float time_out = 0.05; //Time (seconds) before buffer changes are checked
+    time(&last_time);
+    initscr();
+    timeout(-1);
           
+    prev_buffer     
           
-          
-          while(difftime(time(NULL), last_time) > time_out){
-            int c = getch();
-            printf ("%d %c\n", c, c);
-          }
-          endwin();
+    while(difftime(time(NULL), last_time) > time_out){
+      if (fgets(buffer, BUF_SIZE, stdin) != prev_buffer) {
+        prev_buffer = buffer;
+        wprintw("%s", buffer);
+        wrefresh();
+      }
+      else if(prev_buffer != )
+      ret = send(sock , message_buffer , BUF_SIZE , 0);
+      if(ret < 0) {
+          printf("Error sending data");
+          exit(1);
+      }
+    }
 
+    initscr();
+    getmaxyx(stdscr, row, col);	
+    new = newwin(row - 2, col - 2, 1, 1);
+
+    scrollok(new,TRUE);
+    raw();
+    keypad(stdscr, TRUE);
+    noecho();
+    
+    waddstr(new, "user > ");
+    wrefresh(new);
+    if (pid == 0) {
+      do {
+        // sync()     
+        ch = getch();
+        //Quit the program, disconnect from host
+        if(ch == CTRL('c')) {
+            wprintw(new, "Bye bye\n");
+            wrefresh(new);
+            break;
+        }
+        // when user types in backspace
+        else if (ch == 127 || ch == '\b' || ch == KEY_BACKSPACE) {
+            char deleted_char = buffer[b_pos];
+            b_pos = ((b_pos > 0) ? (b_pos-1) : 0);
+            buffer[b_pos] = '\0';
+            wprintw(new, "\b \b");
+            wrefresh(new);
+        }
+        //Run the entered command
+        else if(ch == '\n'){
+            /*run commands*/
+            //Send to server
+        }
+        //Sync between clients
+        else {
+            buffer[b_pos] = ch;
+            b_pos++;
+            waddch(new, ch | A_BOLD | A_UNDERLINE);
+        }
+        ret = send(sock , message_buffer , BUF_SIZE , 0);
+        wrefresh(new);
+       
+      } while(!status);
+    }
+    else {
+      //read input
+      //update buffer
+    }
+    
+    getch();
+    endwin();
+    close(sock);
+    pthread_exit(NULL);
+    return 0;
+}
+    
+
+
+
+
+
+
+
+
+    /*
     // need to use ncurses
     while(fgets(buffer, BUF_SIZE, stdin) != NULL) {
         //Pull from buffer if time elapsed >.5
@@ -117,17 +186,17 @@ int main(int argc, char const *argv[])
         // }
         
         
-        char message_buffer[BUF_SIZE] = {0};
-        if (!username_flag) {
-          int length = strlen(buffer);
-          strncpy(username, buffer, length-1);
-          username[length+1] = '\0';
-          sprintf(message_buffer,"New user joined: %s\n", username);
-          username_flag = 1;
-        }
-        else { //occurs once user provides username
-          sprintf(message_buffer,"%s: %s", username,buffer);
-        }
+        //char message_buffer[BUF_SIZE] = {0};
+        //if (!username_flag) {
+        //  int length = strlen(buffer);
+        //  strncpy(username, buffer, length-1);
+        //  username[length+1] = '\0';
+        //  sprintf(message_buffer,"New user joined: %s\n", username);
+        //  username_flag = 1;
+        //}
+        //else { //occurs once user provides username
+        //  sprintf(message_buffer,"%s: %s", username,buffer);
+        //}
        
         //inserts username at start of message
         ret = send(sock , message_buffer , BUF_SIZE , 0);
@@ -137,6 +206,7 @@ int main(int argc, char const *argv[])
         }
         memset(buffer, '0', BUF_SIZE);
     }
+    */
     close(sock);
     pthread_exit(NULL);
     return 0;
