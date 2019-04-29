@@ -46,6 +46,7 @@ int launch_client(char* ip_addr){
         // Error forking
         return 1;
     }
+    return 0;
 }
 int main(int argc, char** argv){
     if (argc > 3 || argc == 1){

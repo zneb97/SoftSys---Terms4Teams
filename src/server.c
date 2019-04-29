@@ -1,6 +1,5 @@
 /* 
-* Server code to sync and push master copy of terminal to clients
-*
+* Server code to sync and push master copy of terminal buffer to clients
 * Adapted from Head First C and Allen Downey's Software Systems class
 *
 */
@@ -21,20 +20,208 @@
 #define PORT 9000
 #define BUF_SIZE 1024
 #define CLIENT_NUM 30
+#define TOKSIZE 64
+#define TOKEN_DELIM " \t\r\n\a"
 #define CHAT_NUM 10
 #define BACKLOG 3
 
-int main(int argc, char *argv[])
+// Defining ctrl+c to get around ncurses raw() mode
+#ifndef CTRL
+#define CTRL(c) ((c) & 037)
+#endif
+
+/*
+  Function Declarations for builtin shell commands:
+ */
+int t4t_cd(char **args);
+int t4t_help(char **args);
+int t4t_exit(char **args);
+char** parse_line(char* line);
+int t4t_execute(char **args);
+
+char* run_line(char *command){
+    char **tokens;
+    int status = 0;
+    int     fd[2], nbytes;
+    char    readbuffer[80];
+
+    tokens = parse_line(command);
+    if(t4t_execute(tokens) == 0){
+        status = run_line(tokens);
+    }
+
+    pipe(fd);
+
+    pid_t pid;
+
+    pid = fork();
+    if (pid == 0) {
+        // Child process
+        close(fd[0]);    // close reading end in the child
+
+        dup2(fd[1], 1);  // send stdout to the pipe
+        dup2(fd[1], 2);  // send stderr to the pipe
+
+        close(fd[1]);    // this descriptor is no longer needed
+        if (execvp(tokens[0], tokens) == -1) {
+            fprintf(stderr, "Command Not Found\n");
+        }
+        exit(1);
+    } 
+    else if (pid < 0) {
+        // Error forking
+        close(fd[0]);    // close reading end in the child
+
+        dup2(fd[1], 1);  // send stdout to the pipe
+        dup2(fd[1], 2);  // send stderr to the pipe
+        close(fd[1]);
+        fprintf(stderr, "Command Not Found\n");
+        return "Command not found";
+    } 
+    else {
+        // Parent process
+        close(fd[1]);
+        do { 
+            waitpid(pid, &status, WUNTRACED);
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+        
+        char buffer[1000];
+       if(read(fd[0], buffer, sizeof(buffer)) != 0)
+        {
+            return buffer;
+        }
+    }
+    return "THERE WAS AN ERROR";
+}
+/*
+  List of builtin commands, followed by their corresponding functions.
+ */
+char *builtin_str[] = {
+  "cd",
+  "help",
+  "exit"
+};
+
+int (*builtin_func[]) (char **) = {
+  &t4t_cd,
+  &t4t_help,
+  &t4t_exit
+};
+
+int t4t_num_builtins() {
+  return sizeof(builtin_str) / sizeof(char *);
+}
+
+/*
+  Builtin function implementations.
+*/
+
+/**
+   @brief Bultin command: change directory.
+   @param args List of args.  args[0] is "cd".  args[1] is the directory.
+   @return Always returns 1, to continue executing.
+ */
+int t4t_cd(char **args)
 {
-    //Termianl line management
-    char buf[255];
-    char buf_old[255];
+  if (args[1] == NULL) {
+    printf("t4t: expected argument to \"cd\"\n");
+  } else {
+    if (chdir(args[1]) != 0) {
+      perror("t4t");
+    }
+  }
+  return 1;
+}
+
+/**
+   @brief Builtin command: print help.
+   @param args List of args.  Not examined.
+   @return Always returns 1, to continue executing.
+ */
+int t4t_help(char **args)
+{
+  int i;
+  for (i = 0; i < t4t_num_builtins(); i++) {
+    printf("  %s\n", builtin_str[i]);
+  }
+  printf("Sorry, we don't offer help :(\n");
+  return 1;
+}
+
+/**
+   @brief Builtin command: exit.
+   @param args List of args.  Not examined.
+   @return Always returns 0, to terminate execution.
+ */
+int t4t_exit(char **args)
+{
+  exit(1);
+}
+
+int t4t_execute(char **args)
+{
+  int i;
+
+  if (args[0] == NULL) {
+    // An empty command was entered.
+    return 1;
+  }
+  for (i = 0; i < t4t_num_builtins(); i++) {
+    if (strcmp(args[0], builtin_str[i]) == 0) {
+      return (*builtin_func[i])(args);
+    }
+  }
+  return 0;
+}
+
+/*
+* Breaks the built up buffer into tokens. Called before running
+* the line
+*
+* line - built up string buffer from user inputs
+*/
+char** parse_line(char* line){
+    int bufsize = BUF_SIZE;
+    int b_position = 0;
+    char **tokens = malloc(bufsize * sizeof(char*));
+    char *token, **tokens_backup;
+
+    if (!tokens) {
+        printf("Error: memory allocation failed for tokens\n");
+        exit(1);
+    }
+    token = strtok(line, TOKEN_DELIM);
+    while (token != NULL) {
+        tokens[b_position] = token;
+        b_position++;
+
+        if (b_position >= bufsize) {
+        bufsize += TOKSIZE;
+        tokens_backup = tokens;
+        tokens = realloc(tokens, bufsize * sizeof(char*));
+            if (!tokens) {
+                free(tokens_backup);
+                printf("Error: memory reallocation failed for tokens\n");
+                exit(1);
+            }
+        }
+        token = strtok(NULL, TOKEN_DELIM);
+    }
+    tokens[b_position] = NULL;
+    return tokens;
+}
+
+int main(int argc, char *argv[]){
+    // Termianl line management
+    char buf[255]; //The buffer sent to the server
+    char buf_prev[255]; //The full buffer up to most recent recieve
+    char buf_curr[255]; //The full buffer including the most recent recieve
     int ch; // Stored character for analysis
     int b_pos = 0; // position in the buffer
     char **tokens;
     int status = 0; // status flag foor the terminal loop
-    int row, col;
-    int y, x; // cursor position
+    int location = 0; //Cursor location in the terminal
+    int exec_flag = 0; //If a command was executed in the loop
 
     //Client management
     int opt = 1;
@@ -168,19 +355,33 @@ int main(int argc, char *argv[])
 
                 //Handle new buffer
                 else{
-                  buf[valread] = '\0';
-                  //Update local string
-                  //
-                   
-                      
-            
-            }
-            //Send out to all other clients
-            for (int j = 0; j < max_clients; j++) {
-                sd = client_sockets[j];
-                if (j != i && (strcmp(chat[i], chat[j])==0)) {
-                        send(sd , buf , strlen(buf) , 0 );
-                      }
+
+                    if(strcmp(buf, "\n")==0){
+                        //Make it a proper string
+                        buf_curr[location] = '\0';
+
+                        //Execute command
+                        char *line = strndup(buf_curr,location);
+                        char* out = run_line(line);
+                        exec_flag = 1;
+                        location = 0;
+                    }
+
+                    buf_curr[location] = buf[0];
+                    location++;
+                    //Update local string
+                  
+        
+                    //Send out to all other clients
+                    for (int j = 0; j < max_clients; j++) {
+                        sd = client_sockets[j];
+                        //Do not send if same as last
+                        if (strcmp(buf_curr, buf_prev) == 0) {
+                            send(sd , buf_curr , strlen(buf_curr) , 0 );
+                        }
+                        strcpy(buf_prev, buf_curr);
+                    }
+                }
             }
         }
     }
