@@ -235,7 +235,7 @@ int main(int argc, char *argv[]){
     
     fd_set readfds;
     
-    char *welcome_message = "Welcome to to: \n";
+    char *welcome_message = "Welcome to : \n";
 
     //initialise all client_sockets[] to 0 so not checked
     for (i = 0; i < max_clients; i++)
@@ -324,7 +324,7 @@ int main(int argc, char *argv[]){
                 perror("send");
             }
 
-            puts("Welcome welcome_message sent successfully");
+            printf("Welcome message sent successfully");
 
             //add new socket to array of sockets
             for (i = 0; i < max_clients; i++){
@@ -361,6 +361,7 @@ int main(int argc, char *argv[]){
                         command_buf_curr[location] = '\0';
                         //Execute command
                         char *line = strndup(command_buf_curr,location);
+                        printf("Command Received : %s\n",line);
                         char **tokens = parse_line(line);
                         char* out;
                         int status = t4t_execute(tokens);
@@ -376,7 +377,6 @@ int main(int argc, char *argv[]){
                         //Assume we are only getting one character per update
                         command_buf_curr[location] = client_char[0];
                         location++;
-                    
                     }
 
                     //Send to all clients
@@ -385,15 +385,16 @@ int main(int argc, char *argv[]){
                         //Do not send if same as last
                         if (strcmp(command_buf_curr, command_buf_prev) == 0) {
                             //Command was run, send the output
-                            if(exec_flag = 1){
+                            if(exec_flag == 1){
+                                printf("Sending client result : %s", result_buffer);
                                 send(sd , result_buffer , strlen(command_buf_curr) , 0 );
                                 exec_flag = 0;
                             }
                             //New character, update command buffer
                             else{
+                                printf("Sending client command update : %s", command_buf_curr);
                                 send(sd , command_buf_curr , strlen(command_buf_curr) , 0 );
                             }
-                            
                         }
                         strcpy(command_buf_prev, command_buf_curr);
                     }

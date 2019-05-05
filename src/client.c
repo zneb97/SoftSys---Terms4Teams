@@ -16,7 +16,7 @@
 
 
 #define PORT 8000
-#define BUF_SIZE 1000000
+#define BUF_SIZE 10000
 
 #ifndef CTRL
 #define CTRL(c) ((c) & 037)
@@ -29,28 +29,52 @@ void * receiveMessage(void * socket) {
     char buffer[BUF_SIZE];
     sockfd = (int) socket;
    
-    memset(buffer, '\0', BUF_SIZE);
+    memset(&buffer, 0, sizeof(buffer));
     ret = recv(sockfd , buffer, BUF_SIZE, 0);
+    while(1){
+         //Could not make connection
+        if(ret == 0){
+            wprintw(win, "Server not available! Please Ctrl-D");
+            pthread_exit(NULL);
+            exit(0);
+        }
+        //Problem with data transfer
+        else if (ret < 0) {
+                wprintw(win, "Error receiving data!\n");
 
-    //Could not make connection
-    if(ret == 0){
-        printf("Server not available! Please Ctrl-D");
-        pthread_exit(NULL);
-        exit(0);
+        }
+        //Received data, update window
+        else {
+                wprintw(win, buffer);
+
+        }
     }
-    //Problem with data transfer
-    else if (ret < 0) {
-            printf("Error receiving data!\n");
-            pthread_exit(NULL);
-    }
-    //Received data, update window
-    else {
-            wprintw(win, buffer);
-            pthread_exit(NULL);
-    }
+   
 }
 
 int main(int argc, char const *argv[]){
+    // Init Ncurses + Window
+    initscr();
+    int row;
+    int col;
+    getmaxyx(stdscr, row, col);	
+    win = newwin(row - 2, col - 2, 1, 1);
+    scrollok(win,TRUE);
+    raw();
+    keypad(stdscr, TRUE);
+    noecho();
+    wrefresh(win);
+
+    // Init char position
+    char ch;
+    int b_pos = 0;
+
+    //Time stuff
+    time_t last_time;
+    float time_out = 0.05; //Time (seconds) before buffer changes are checked
+    time(&last_time);
+
+    // Init Network Stuff
     struct sockaddr_in address;
     int sock = 0;
     struct sockaddr_in serv_addr;
@@ -61,7 +85,7 @@ int main(int argc, char const *argv[]){
     pthread_t rThread;
 
     if (argc <2) { //checks that user input server ip address
-      printf("Missing server ip address");
+      wprintw(win, "Missing server ip address");
       exit(1);
     }
 
@@ -69,7 +93,7 @@ int main(int argc, char const *argv[]){
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        printf("\n Socket creation error \n");
+        wprintw(win, "\n Socket creation error \n");
         return -1;
     }
 
@@ -82,52 +106,31 @@ int main(int argc, char const *argv[]){
     // Convert IPv4 and IPv6 addresses from text to binary form
     if(inet_pton(AF_INET, serverAddr, &serv_addr.sin_addr)<=0)
     {
-        printf("\nInvalid address/ Address not supported \n");
+        wprintw(win, "\nInvalid address/ Address not supported \n");
         return -1;
     }
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        printf("\nConnection Failed \n");
+        wprintw(win, "\nConnection Failed \n");
         return -1;
+    }
+
+    //creating a new thread for receiving messages from the server
+    int ret = pthread_create(&rThread, NULL, receiveMessage, (void *) sock);
+    if (ret) {
+        wprintw(win, "ERROR: Return Code from pthread_create() is %d\n", ret);
+        exit(1);
     }
 
 
 
-
-    //Time stuff
-    time_t last_time;
-    float time_out = 0.05; //Time (seconds) before buffer changes are checked
-    time(&last_time);
-    initscr();
-    timeout(-1);
     
-    ///NEED TO DEFINE ROW + COL?
-    int row;
-    int col;
-    getmaxyx(stdscr, row, col);	
+    // timeout(-1);
+
     
-    win = newwin(row - 2, col - 2, 1, 1);
-
-    scrollok(win,TRUE);
-    raw();
-    keypad(stdscr, TRUE);
-    noecho();
-    
-    
-    wrefresh(win);
-    char ch;
-    int b_pos = 0;
-
-
-    for(;;) {
-        //creating a new thread for receiving messages from the server
-        int ret = pthread_create(&rThread, NULL, receiveMessage, (void *) sock);
-        if (ret) {
-            printf("ERROR: Return Code from pthread_create() is %d\n", ret);
-            exit(1);
-        }
-
+    while(1) {
+        
         // sync()     
         ch = getch();
 
@@ -151,7 +154,7 @@ int main(int argc, char const *argv[]){
             buffer[b_pos] = '\0';
             ret = send(sock , buffer , BUF_SIZE , 0);
             if(ret < 0) {
-                printf("Error sending data");
+                wprintw(win, "Error sending data");
                 exit(1);
             }
             //Send to server
@@ -173,7 +176,7 @@ int main(int argc, char const *argv[]){
                 wrefresh(win);
                 ret = send(sock , buffer , BUF_SIZE , 0);
                 if(ret < 0) {
-                    printf("Error sending data");
+                    wprintw(win, "Error sending data");
                     exit(1);
                 }
             }
