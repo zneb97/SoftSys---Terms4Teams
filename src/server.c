@@ -18,7 +18,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define PORT 9000
+#define PORT 9001
 #define BUF_SIZE 1024
 #define CLIENT_NUM 30
 #define CHAT_NUM 10
@@ -171,16 +171,14 @@ int main(int argc, char *argv[])
                   buf[valread] = '\0';
                   //Update local string
                   //
-                   
-                      
-            
+                }
             }
             //Send out to all other clients
             for (int j = 0; j < max_clients; j++) {
                 sd = client_sockets[j];
                 if (j != i && (strcmp(chat[i], chat[j])==0)) {
                         send(sd , buf , strlen(buf) , 0 );
-                      }
+                }
             }
         }
     }
