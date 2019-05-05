@@ -17,8 +17,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define PORT 9000
+#define PORT 8000
 #define BUF_SIZE 1024
+#define MESSAGE_SIZE 1000000
 #define CLIENT_NUM 30
 #define TOKSIZE 64
 #define TOKEN_DELIM " \t\r\n\a"
@@ -39,21 +40,16 @@ int t4t_exit(char **args);
 char** parse_line(char* line);
 int t4t_execute(char **args);
 
-char* run_line(char *command){
-    char **tokens;
+
+//Create processes to run the commands
+char* run_line(char **args){
+    
     int status = 0;
     int     fd[2], nbytes;
     char    readbuffer[80];
-
-    tokens = parse_line(command);
-    if(t4t_execute(tokens) == 0){
-        status = run_line(tokens);
-    }
-
+    
     pipe(fd);
-
     pid_t pid;
-
     pid = fork();
     if (pid == 0) {
         // Child process
@@ -63,7 +59,7 @@ char* run_line(char *command){
         dup2(fd[1], 2);  // send stderr to the pipe
 
         close(fd[1]);    // this descriptor is no longer needed
-        if (execvp(tokens[0], tokens) == -1) {
+        if (execvp(args[0], args) == -1) {
             fprintf(stderr, "Command Not Found\n");
         }
         exit(1);
@@ -85,13 +81,15 @@ char* run_line(char *command){
             waitpid(pid, &status, WUNTRACED);
         } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         
-        char buffer[1000];
+        // shiitty hack to give the buffer enough size
+        char buffer[MESSAGE_SIZE];
        if(read(fd[0], buffer, sizeof(buffer)) != 0)
         {
-            return buffer;
+            // need to return the address to the buffer that contains command output
+            return strdup(buffer);
         }
     }
-    return "THERE WAS AN ERROR";
+    return "nonstandard";
 }
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -144,7 +142,7 @@ int t4t_help(char **args)
   for (i = 0; i < t4t_num_builtins(); i++) {
     printf("  %s\n", builtin_str[i]);
   }
-  printf("Sorry, we don't offer help :(\n");
+  printf("Sorry, we don't offer help \n");
   return 1;
 }
 
@@ -213,9 +211,10 @@ char** parse_line(char* line){
 
 int main(int argc, char *argv[]){
     // Termianl line management
-    char buf[255]; //The buffer sent to the server
-    char buf_prev[255]; //The full buffer up to most recent recieve
-    char buf_curr[255]; //The full buffer including the most recent recieve
+    char client_char[2]; //The single char sent to the server from clients
+    char command_buf_prev[255]; //The full buffer up to most recent recieve
+    char command_buf_curr[255]; //The full buffer including the most recent recieve
+    char* result_buffer; // Pointer to the strdupped result of command 
     int ch; // Stored character for analysis
     int b_pos = 0; // position in the buffer
     char **tokens;
@@ -344,7 +343,7 @@ int main(int argc, char *argv[]){
             if (FD_ISSET( sd , &readfds)){
 
                 //User disconnect
-                if ((valread = read( sd , buf, BUF_SIZE)) == 0){
+                if ((valread = read( sd , client_char, BUF_SIZE)) == 0){
                     getpeername(sd , (struct sockaddr*)&address , (socklen_t*)&addrlen);
                     printf("Host disconnected , ip %s , port %d \n" , inet_ntoa(address.sin_addr),
                     ntohs(address.sin_port));
@@ -356,31 +355,49 @@ int main(int argc, char *argv[]){
                 //Handle new buffer
                 else{
 
-                    if(strcmp(buf, "\n")==0){
+                    //RUN COMMAND
+                    if(strcmp(client_char, "\n")==0){
                         //Make it a proper string
-                        buf_curr[location] = '\0';
-
+                        command_buf_curr[location] = '\0';
                         //Execute command
-                        char *line = strndup(buf_curr,location);
-                        char* out = run_line(line);
+                        char *line = strndup(command_buf_curr,location);
+                        char **tokens = parse_line(line);
+                        char* out;
+                        int status = t4t_execute(tokens);
+                        if(status == 0){
+                            result_buffer = run_line(tokens);                          
+                        }
                         exec_flag = 1;
                         location = 0;
                     }
 
-                    buf_curr[location] = buf[0];
-                    location++;
-                    //Update local string
-                  
-        
-                    //Send out to all other clients
+                    //ADD TO COMMAND BUFFER
+                    else{
+                        //Assume we are only getting one character per update
+                        command_buf_curr[location] = client_char[0];
+                        location++;
+                    
+                    }
+
+                    //Send to all clients
                     for (int j = 0; j < max_clients; j++) {
                         sd = client_sockets[j];
                         //Do not send if same as last
-                        if (strcmp(buf_curr, buf_prev) == 0) {
-                            send(sd , buf_curr , strlen(buf_curr) , 0 );
+                        if (strcmp(command_buf_curr, command_buf_prev) == 0) {
+                            //Command was run, send the output
+                            if(exec_flag = 1){
+                                send(sd , result_buffer , strlen(command_buf_curr) , 0 );
+                                exec_flag = 0;
+                            }
+                            //New character, update command buffer
+                            else{
+                                send(sd , command_buf_curr , strlen(command_buf_curr) , 0 );
+                            }
+                            
                         }
-                        strcpy(buf_prev, buf_curr);
+                        strcpy(command_buf_prev, command_buf_curr);
                     }
+                    
                 }
             }
         }
