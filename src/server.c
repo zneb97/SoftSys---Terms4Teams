@@ -320,12 +320,9 @@ int main(int argc, char *argv[]){
             printf("New connection , socket fd is %d , ip is : %s , port : %d\n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
 
             //send new connection greeting welcome_message
-            if( send(new_socket, welcome_message, strlen(welcome_message), 0) != strlen(welcome_message) ){
-                perror("send");
-            }
-
-            printf("Welcome message sent successfully");
-
+            // if( send(new_socket, welcome_message, strlen(welcome_message), 0) != strlen(welcome_message) ){
+            //     perror("send");
+            // }
             //add new socket to array of sockets
             for (i = 0; i < max_clients; i++){
                 if( client_sockets[i] == 0 ){
@@ -383,20 +380,21 @@ int main(int argc, char *argv[]){
                     for (int j = 0; j < max_clients; j++) {
                         sd = client_sockets[j];
                         //Do not send if same as last
-                        if (strcmp(command_buf_curr, command_buf_prev) == 0) {
+                        if (strcmp(command_buf_curr, command_buf_prev) != 0) {
                             //Command was run, send the output
+                            printf("curr : %s | prev: %s\n", command_buf_curr, command_buf_prev);
                             if(exec_flag == 1){
-                                printf("Sending client result : %s", result_buffer);
+                                printf("Sending client result : %s\n", result_buffer);
                                 send(sd , result_buffer , strlen(command_buf_curr) , 0 );
                                 exec_flag = 0;
                             }
                             //New character, update command buffer
                             else{
-                                printf("Sending client command update : %s", command_buf_curr);
+                                printf("Sending all clients command update : %s\n", command_buf_curr);
                                 send(sd , command_buf_curr , strlen(command_buf_curr) , 0 );
                             }
+                            strcpy(command_buf_prev, command_buf_curr);
                         }
-                        strcpy(command_buf_prev, command_buf_curr);
                     }
                     
                 }

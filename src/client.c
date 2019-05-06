@@ -30,9 +30,9 @@ void * receiveMessage(void * socket) {
     sockfd = (int) socket;
    
     memset(&buffer, 0, sizeof(buffer));
-    ret = recv(sockfd , buffer, BUF_SIZE, 0);
     while(1){
-         //Could not make connection
+        ret = recv(sockfd , buffer, BUF_SIZE, 0);
+        //Could not make connection
         if(ret == 0){
             wprintw(win, "Server not available! Please Ctrl-D");
             pthread_exit(NULL);
@@ -40,15 +40,14 @@ void * receiveMessage(void * socket) {
         }
         //Problem with data transfer
         else if (ret < 0) {
-                wprintw(win, "Error receiving data!\n");
-
+            wprintw(win, "Error receiving data!\n");
         }
         //Received data, update window
         else {
-                wprintw(win, buffer);
-
+            wprintw(win, buffer);
         }
     }
+    pthread_exit(NULL);
    
 }
 
@@ -68,11 +67,6 @@ int main(int argc, char const *argv[]){
     // Init char position
     char ch;
     int b_pos = 0;
-
-    //Time stuff
-    time_t last_time;
-    float time_out = 0.05; //Time (seconds) before buffer changes are checked
-    time(&last_time);
 
     // Init Network Stuff
     struct sockaddr_in address;
@@ -121,19 +115,16 @@ int main(int argc, char const *argv[]){
     if (ret) {
         wprintw(win, "ERROR: Return Code from pthread_create() is %d\n", ret);
         exit(1);
-    }
+    }    
 
-
-
-    
-    // timeout(-1);
-
+    //Time stuff
+    time_t last_time;
+    float time_out = 0.3; //Time (seconds) before buffer changes are checked
+    time(&last_time);
+    timeout(-1);
     
     while(1) {
-        
-        // sync()     
         ch = getch();
-
         //Quit the program, disconnect from host
         if(ch == CTRL('c')) {
             wprintw(win, "Bye bye\n");
@@ -151,36 +142,35 @@ int main(int argc, char const *argv[]){
         //Run the entered command
         else if(ch == '\n'){
             /*run commands*/
-            buffer[b_pos] = '\0';
+            //Send to server
+            wprintw(win, "\n");
             ret = send(sock , buffer , BUF_SIZE , 0);
             if(ret < 0) {
                 wprintw(win, "Error sending data");
                 exit(1);
             }
-            //Send to server
+
         }
         //Sync between clients
         else {
             buffer[b_pos] = ch;
             b_pos++;
             waddch(win, ch | A_BOLD | A_UNDERLINE);
-        }
-
-        //If update time has passed
-        if (difftime(time(NULL), last_time) > time_out){
-
-            //If buffer has updates
-            if (strcmp(buffer, prev_buffer) == 0){
-                strcpy(prev_buffer, buffer); 
-                wprintw(win, buffer);
-                wrefresh(win);
-                ret = send(sock , buffer , BUF_SIZE , 0);
-                if(ret < 0) {
-                    wprintw(win, "Error sending data");
-                    exit(1);
+            //If update time has passed
+            if (difftime(time(NULL), last_time) > time_out){
+                //If buffer has updates
+                if (strcmp(buffer, prev_buffer) == 0){
+                    strcpy(prev_buffer, buffer); 
+                    wprintw(win, "Sending Buffer %s\n", buffer);
+                    wrefresh(win);
+                    ret = send(sock , buffer , BUF_SIZE , 0);
+                    if(ret < 0) {
+                        wprintw(win, "Error sending data");
+                        exit(1);
+                    }
                 }
+                time(&last_time);
             }
-            time(&last_time);
         }
         wrefresh(win);
     } 
