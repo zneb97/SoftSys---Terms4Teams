@@ -25,7 +25,7 @@ Please take a look at our [demo](https://drive.google.com/open?id=1kTatByUHmqYgj
 
 On the networking side of the programming we've had more obstacles. We identified a work flow for which the data will be processed (see Figure 1). However while we have made a simple socket connection between a client and server program, we are only currently able to pass a single character from the client where it is consolidated by the server before being returned to the client's terminal. Anything more than that is not input. We believe this is currently caused on the server sides, specifically our process creation when accepting new characters and how and when it is being called to process data that we are getting hung up on.
 
-![Figure 1: The plan for the program and how data is processed and in what order](https://github.com/zneb97/SoftSys---Terms4Teams/tree/master/reports/assets/workflow.png "Figure 1")
+![Figure 1: The plan for the program and how data is processed and in what order](https://github.com/zneb97/SoftSys---Terms4Teams/blob/master/reports/assets/workflow.png)
 
 
 ### Where We're Going
@@ -65,4 +65,7 @@ We have found plenty of quality resources that helped us along the course of thi
 
 
 ### Links 
+- [Team Github](https://github.com/zneb97/SoftSys---Terms4Teams)
 - [Team Trello board](https://trello.com/b/MWdqdabQ/terms4teams)
+
+
