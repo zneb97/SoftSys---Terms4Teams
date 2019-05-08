@@ -52,7 +52,7 @@ We believe we had set ourselves some challenging initial goals (build a terminal
 2. Incremental intergration is definetely easier than trying to merge in giant pull requests at once. Our team had a working terminal code, a working server code, and a wokring client code and merging these together did not make us happy (especially with C)
 3. A debugger can save you a lot of time by telling you exactly on which line a segmentation fault occured
 
-<b>Nathan</b> - I wanted to gain more experience developing applications in C and to expand on my knowledge of networking from the last project. I succeeded in building my skills and confidence but a concussion in the final week unfortunately made it difficult for me to help polish up and iron out points that the group was stuck on.
+<b>Nathan</b> - I wanted to gain more experience developing applications in C and to expand on my knowledge of networking from the last project. I succeeded in building my skills and confidence but a concussion in the final week unfortunately made me unable to fix the bugs that I was stuck on (and SeungIn and Ben had to take over) which was a bit disappointing. Overall still a positive experience though and I would say I achieved my broad learning goals.
 
 <b>Ben</b> - I wanted to get a better understanding of how real time collaboration works, namely the algorithms and intuitions used to make the work feel natural and provide a strong user experience.
 
