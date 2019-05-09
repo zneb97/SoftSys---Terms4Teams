@@ -391,6 +391,8 @@ int main(int argc, char *argv[]){
                             //New character, update command buffer
                             else{
                                 printf("Sending all clients command update : %s\n", command_buf_curr);
+                                //printf("%s", command_buf_prev)
+                                //printf("%i", strlen(command_buf_curr));
                                 send(sd , command_buf_curr , strlen(command_buf_curr) , 0 );
                             }
                             strcpy(command_buf_prev, command_buf_curr);
