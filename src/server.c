@@ -17,7 +17,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+
 #define PORT 8000
+
 #define BUF_SIZE 1024
 #define MESSAGE_SIZE 1000000
 #define CLIENT_NUM 30
@@ -398,7 +400,7 @@ int main(int argc, char *argv[]){
                             strcpy(command_buf_prev, command_buf_curr);
                         }
                     }
-                    
+                
                 }
             }
         }

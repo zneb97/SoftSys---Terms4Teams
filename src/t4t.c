@@ -45,9 +45,10 @@ int launch_client(char* ip_addr){
     else if (pid < 0) {
         // Error forking
         return 1;
+
     }
-    return 0;
 }
+
 int main(int argc, char** argv){
     if (argc > 3 || argc == 1){
         fprintf(stderr, "[*] Usage:\n[1] ./t4t -s \n[2] ./t4t -c <ip_addr> \n");

@@ -95,6 +95,7 @@ int t4t_help(char **args)
 int t4t_exit(char **args)
 {
   exit(1);
+
 }
 
 int t4t_execute(char **args)
