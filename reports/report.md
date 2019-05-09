@@ -25,7 +25,7 @@ Please take a look at our [demo](https://drive.google.com/open?id=1kTatByUHmqYgj
 
 On the networking side of the programming we've had more obstacles. We identified a work flow for which the data will be processed (see Figure 1). However while we have made a simple socket connection between a client and server program, we are only currently able to pass a single character from the client where it is consolidated by the server before being returned to the client's terminal. Anything more than that is not input. We believe this is currently caused on the server sides, specifically our process creation when accepting new characters and how and when it is being called to process data that we are getting hung up on.
 
-![Figure 1: The plan for the program and how data is processed and in what order](https://github.com/zneb97/SoftSys---Terms4Teams/tree/master/reports/assets/workflow.png "Figure 1")
+![Figure 1: The plan for the program and how data is processed and in what order](https://github.com/zneb97/SoftSys---Terms4Teams/blob/master/reports/assets/workflow.png)
 
 
 ### Where We're Going
@@ -52,7 +52,7 @@ We believe we had set ourselves some challenging initial goals (build a terminal
 2. Incremental intergration is definetely easier than trying to merge in giant pull requests at once. Our team had a working terminal code, a working server code, and a wokring client code and merging these together did not make us happy (especially with C)
 3. A debugger can save you a lot of time by telling you exactly on which line a segmentation fault occured
 
-<b>Nathan</b> - I want to gain more experience developing applications in C and to expand on my knowledge of networking from the last project. Real-time editing is also super cool.
+<b>Nathan</b> - I wanted to gain more experience developing applications in C and to expand on my knowledge of networking from the last project. I succeeded in building my skills and confidence but a concussion in the final week unfortunately made me unable to fix the bugs that I was stuck on (and SeungIn and Ben had to take over) which was a bit disappointing. Overall still a positive experience though and I would say I achieved my broad learning goals.
 
 <b>Ben</b> - I wanted to get a better understanding of how real time collaboration works, namely the algorithms and intuitions used to make the work feel natural and provide a strong user experience.
 
@@ -65,4 +65,7 @@ We have found plenty of quality resources that helped us along the course of thi
 
 
 ### Links 
+- [Team Github](https://github.com/zneb97/SoftSys---Terms4Teams)
 - [Team Trello board](https://trello.com/b/MWdqdabQ/terms4teams)
+
+
